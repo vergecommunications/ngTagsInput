@@ -1,4 +1,4 @@
-# ngTagsInput 
+# Forked from: ngTagsInput 
 
 [![Travis](https://img.shields.io/travis/mbenford/ngTagsInput.svg?style=flat)](https://travis-ci.org/mbenford/ngTagsInput)
 [![Coveralls](https://img.shields.io/coveralls/mbenford/ngTagsInput.svg?style=flat)](https://coveralls.io/r/mbenford/ngTagsInput?branch=master)
