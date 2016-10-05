@@ -56,7 +56,7 @@
  */
 tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tagsInputConfig, tiUtil) {
     function TagList(options, events, onTagAdding, onTagRemoving) {
-        var self = {}, getTagText, setTagText, canAddTag, canRemoveTag;
+     var self = {}, getTagText, setTagText, canAddTag, canRemoveTag, setTagSlug, setTagStatus;
 
         getTagText = function(tag) {
             return tiUtil.safeToString(tag[options.displayProperty]);
@@ -64,6 +64,16 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tags
 
         setTagText = function(tag, text) {
             tag[options.displayProperty] = text;
+        };
+
+        setTagSlug = function(tag, slug) {
+            if(!angular.isUndefined(slug))
+                tag['slug'] = slug;
+        };
+
+        setTagStatus = function(tag, status) {
+            if(!angular.isUndefined(status))
+                tag['status'] = status;
         };
 
         canAddTag = function(tag) {
@@ -83,10 +93,14 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tags
 
         self.items = [];
 
-        self.addText = function(text) {
+        self.addText = function(text, slug, status) {
             var tag = {};
+            console.log('addtest');
             setTagText(tag, text);
-            return self.add(tag);
+            setTagSlug(tag, slug);
+            setTagStatus(tag, status);
+
+            return self.add(tag)
         };
 
         self.add = function(tag) {
@@ -165,6 +179,8 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tags
         scope: {
             tags: '=ngModel',
             text: '=?',
+            slug: '=?',
+            status: '=?',
             templateScope: '=?',
             tagClass: '&',
             onTagAdding: '&',
@@ -177,7 +193,7 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tags
         replace: false,
         transclude: true,
         templateUrl: 'ngTagsInput/tags-input.html',
-        controller: function($scope, $attrs, $element) {
+        controller: ["$scope", "$attrs", "$element", function($scope, $attrs, $element) {
             $scope.events = tiUtil.simplePubSub();
 
             tagsInputConfig.load('tagsInput', $scope, $attrs, {
@@ -249,7 +265,7 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tags
                     }
                 };
             };
-        },
+        }],
         link: function(scope, element, attrs, ngModelCtrl) {
             var hotkeys = [KEYS.enter, KEYS.comma, KEYS.space, KEYS.backspace, KEYS.delete, KEYS.left, KEYS.right],
                 tagList = scope.tagList,
@@ -275,13 +291,34 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tags
             };
 
             scope.newTag = {
-                text: function(value) {
+                text: function(value, editMode) {
                     if (angular.isDefined(value)) {
                         scope.text = value;
-                        events.trigger('input-change', value);
+                        !!editMode||events.trigger('input-change', value);
                     }
                     else {
                         return scope.text || '';
+                    }
+                },
+                slug: function(value) {
+                    if (angular.isDefined(value)) {
+                        scope.slug = value;
+                    }
+                    else {
+                        return scope.slug || '';
+                    }
+                },
+                status: function(value) {
+                    if (angular.isDefined(value)) {
+                        scope.status = value;
+                    }
+                    else {
+                        return scope.status || '';
+                    }
+                },
+                setClass: function(value) {
+                    if (angular.isDefined(value)) {
+                        scope.tagClass = value;
                     }
                 },
                 invalid: null
@@ -363,7 +400,7 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tags
                     }
                 },
                 tag: {
-                    click: function(tag) {
+                    dblclick: function(tag) {
                         events.trigger('tag-clicked', { $tag: tag });
                     }
                 }
@@ -373,7 +410,18 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tags
                 .on('tag-added', scope.onTagAdded)
                 .on('invalid-tag', scope.onInvalidTag)
                 .on('tag-removed', scope.onTagRemoved)
-                .on('tag-clicked', scope.onTagClicked)
+                // very delicate
+                .on('tag-clicked', function() {
+                    tagList.selectPrior();
+                    tagList.removeSelected().then(function(tag) {
+                        if (tag) {
+                            console.log(tag);
+                            scope.newTag.text(tag[options.displayProperty], true);
+                            scope.newTag.slug(tag['slug']);
+                            scope.newTag.status(tag['status']);
+                        }
+                    });
+                })
                 .on('tag-added', function() {
                     scope.newTag.text('');
                 })
@@ -403,7 +451,12 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tags
                 })
                 .on('input-blur', function() {
                     if (options.addOnBlur && !options.addFromAutocompleteOnly) {
-                        tagList.addText(scope.newTag.text());
+                        var text = scope.newTag.text(),
+                            slug = scope.newTag.slug(),
+                            status = scope.newTag.status();
+
+                        tagList.addText(text, slug, status);
+
                     }
                     element.triggerHandler('blur');
                     setElementValidity();
@@ -427,15 +480,21 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tags
                     shouldSelect = (key === KEYS.backspace || key === KEYS.left || key === KEYS.right) && scope.newTag.text().length === 0 && !options.enableEditingLastTag;
 
                     if (shouldAdd) {
-                        tagList.addText(scope.newTag.text());
+                        var text = scope.newTag.text(),
+                            slug = scope.newTag.slug(),
+                            status = scope.newTag.status();
+
+                        tagList.addText(text, slug, status);
                     }
                     else if (shouldEditLastTag) {
                         tagList.selectPrior();
                         tagList.removeSelected().then(function(tag) {
                             if (tag) {
-                                scope.newTag.text(tag[options.displayProperty]);
-                                tag.slug&&scope.newTag.slug(tag['slug']);
-                                tag.status&&scope.newTag.status(tag['status']);
+                                console.log(tag);
+                                scope.newTag.text(tag[options.displayProperty], true);
+                                scope.newTag.slug(tag['slug']);
+                                scope.newTag.status(tag['status']);
+                                console.log(scope);
                             }
                         });
                     }
