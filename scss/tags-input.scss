@@ -3,20 +3,20 @@
 
 tags-input {
   .tags {
-    -moz-appearance: textfield;
-    -webkit-appearance: textfield;
-    padding: 1px;
-    overflow: hidden;
-    word-wrap: break-word;
-    cursor: text;
-    background-color: $tags-bgcolor;
-    border: $tags-border;
-    box-shadow: $tags-border-shadow;
-    height: 100%;
+    // -moz-appearance: textfield;
+    // -webkit-appearance: textfield;
+    // padding: 1px;
+    // overflow: hidden;
+    // word-wrap: break-word;
+    // cursor: text;
+    // background-color: $tags-bgcolor;
+    // border: $tags-border;
+    // box-shadow: $tags-border-shadow;
+    // height: 100%;
 
     &.focused {
-      outline: none;
-      @include box-shadow($tags-outline-box-shadow);
+      // outline: none;
+      // @include box-shadow($tags-outline-box-shadow);
     }
 
     .tag-list {
@@ -27,15 +27,15 @@ tags-input {
 
     .tag-item {
       margin: 2px;
-      padding: 0 5px;
+      // padding: 0 5px;
       display: inline-block;
       float: left;
       font: $tag-font;
-      height: $tag-height;
-      line-height: $tag-height - 1px;
-      border: $tag-border;
-      border-radius: $tag-border-radius;
-      @include gradient($tag-color);
+      // height: $tag-height;
+      // line-height: $tag-height - 1px;
+      // border: $tag-border;
+      // border-radius: $tag-border-radius;
+      // @include gradient($tag-color);
 
       &.selected {
         @include gradient($tag-color-selected);
@@ -79,7 +79,7 @@ tags-input {
   }
 
   &.ng-invalid .tags {
-    @include box-shadow($tags-outline-box-shadow-invalid);
+    // @include box-shadow($tags-outline-box-shadow-invalid);
   }
 
   &[disabled] {

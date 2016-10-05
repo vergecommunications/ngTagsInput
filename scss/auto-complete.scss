@@ -2,9 +2,10 @@
 @import "variables";
 
 tags-input .autocomplete {
-  margin-top: 5px;
+  margin-top: 38px;
+  // margin-top: 5px;
   position: absolute;
-  padding: 5px 0;
+  // padding: 5px 0;
   z-index: $suggestions-z-index;
   width: $suggestions-width;
   background-color: $suggestions-bgcolor;
@@ -26,7 +27,7 @@ tags-input .autocomplete {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font: $suggestion-font;
+    // font: $suggestion-font;
     color: $suggestion-color;
     background-color: $suggestion-bgcolor;
 
@@ -41,7 +42,7 @@ tags-input .autocomplete {
     }
 
     em {
-      font: $suggestion-highlight-font;
+      // font: $suggestion-highlight-font;
       color: $suggestion-highlight-color;
       background-color: $suggestion-highlight-bgcolor;
     }

@@ -434,6 +434,8 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tags
                         tagList.removeSelected().then(function(tag) {
                             if (tag) {
                                 scope.newTag.text(tag[options.displayProperty]);
+                                tag.slug&&scope.newTag.slug(tag['slug']);
+                                tag.status&&scope.newTag.status(tag['status']);
                             }
                         });
                     }
