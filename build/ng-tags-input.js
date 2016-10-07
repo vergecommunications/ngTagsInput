@@ -124,7 +124,6 @@ tagsInput.directive('tagsInput', ["$timeout", "$document", "$window", "$q", "tag
 
         self.addText = function(text, slug, status) {
             var tag = {};
-            console.log('addtest');
             setTagText(tag, text);
             setTagSlug(tag, slug);
             setTagStatus(tag, status);
@@ -254,6 +253,9 @@ tagsInput.directive('tagsInput', ["$timeout", "$document", "$window", "$q", "tag
             $scope.tagList = new TagList($scope.options, $scope.events,
                 tiUtil.handleUndefinedResult($scope.onTagAdding, true),
                 tiUtil.handleUndefinedResult($scope.onTagRemoving, true));
+            $scope.dummyTagList = new TagList($scope.options, $scope.events,
+                tiUtil.handleUndefinedResult($scope.onTagAdding, true),
+                tiUtil.handleUndefinedResult($scope.onTagRemoving, true));
 
             this.registerAutocomplete = function() {
                 var input = $element.find('input');
@@ -262,8 +264,8 @@ tagsInput.directive('tagsInput', ["$timeout", "$document", "$window", "$q", "tag
                     addTag: function(tag) {
                         return $scope.tagList.add(tag);
                     },
-                    getTags: function() {
-                        return $scope.tagList.items;
+                    getTags: function(dummy) {
+                        return !!dummy ? $scope.dummyTagList.items : $scope.tagList.items;
                     },
                     getCurrentTagText: function() {
                         return $scope.newTag.text();
@@ -444,7 +446,6 @@ tagsInput.directive('tagsInput', ["$timeout", "$document", "$window", "$q", "tag
                     tagList.selectPrior();
                     tagList.removeSelected().then(function(tag) {
                         if (tag) {
-                            console.log(tag);
                             scope.newTag.text(tag[options.displayProperty], true);
                             scope.newTag.slug(tag['slug']);
                             scope.newTag.status(tag['status']);
@@ -519,11 +520,9 @@ tagsInput.directive('tagsInput', ["$timeout", "$document", "$window", "$q", "tag
                         tagList.selectPrior();
                         tagList.removeSelected().then(function(tag) {
                             if (tag) {
-                                console.log(tag);
                                 scope.newTag.text(tag[options.displayProperty], true);
                                 scope.newTag.slug(tag['slug']);
                                 scope.newTag.status(tag['status']);
-                                console.log(scope);
                             }
                         });
                     }
@@ -657,6 +656,7 @@ tagsInput.directive('autoComplete', ["$document", "$timeout", "$sce", "$q", "tag
 
             self.items = [];
             self.visible = false;
+            self.mergeMode = false;
             self.index = -1;
             self.selected = null;
             self.query = null;
@@ -669,6 +669,7 @@ tagsInput.directive('autoComplete', ["$document", "$timeout", "$sce", "$q", "tag
                 self.selected = null;
             }
             self.visible = true;
+            self.mergeMode = false;
         };
         self.load = tiUtil.debounce(function(query, tags) {
             self.query = query;
@@ -738,7 +739,10 @@ tagsInput.directive('autoComplete', ["$document", "$timeout", "$sce", "$q", "tag
         require: '^tagsInput',
         scope: {
             source: '&',
-            matchClass: '&'
+            mergeSource: '&',
+            matchClass: '&',
+            mergeWith: '&',
+            removeForever: '&'
         },
         templateUrl: 'ngTagsInput/auto-complete.html',
         controller: ["$scope", "$element", "$attrs", function($scope, $element, $attrs) {
@@ -758,6 +762,8 @@ tagsInput.directive('autoComplete', ["$document", "$timeout", "$sce", "$q", "tag
             });
 
             $scope.suggestionList = new SuggestionList($scope.source, $scope.options, $scope.events);
+            $scope.mergeList      = new SuggestionList($scope.mergeSource, $scope.options, $scope.events);
+
 
             this.registerAutocompleteMatch = function() {
                 return {
@@ -773,6 +779,7 @@ tagsInput.directive('autoComplete', ["$document", "$timeout", "$sce", "$q", "tag
         link: function(scope, element, attrs, tagsInputCtrl) {
             var hotkeys = [KEYS.enter, KEYS.tab, KEYS.escape, KEYS.up, KEYS.down],
                 suggestionList = scope.suggestionList,
+                mergeList = scope.mergeList,
                 tagsInput = tagsInputCtrl.registerAutocomplete(),
                 options = scope.options,
                 events = scope.events,
@@ -814,6 +821,32 @@ tagsInput.directive('autoComplete', ["$document", "$timeout", "$sce", "$q", "tag
                 ];
             };
 
+            scope.getMergeClass = function(item, index) {
+                var selected = item === mergeList.selected;
+                return [
+                    scope.matchClass({$match: item, $index: index, $selected: selected}),
+                    { selected: selected }
+                ];
+            };
+
+            scope.eventMergeWith = function(item) {
+                scope.suggestionList.mergeMode = true;
+                scope.mergeItem = item;
+            };
+
+            var reload = function() {
+                var value = tagsInput.getCurrentTagText();
+                suggestionList.load(value, tagsInput.getTags());
+            };
+            scope.triggerMergeWith = function(item) {
+                scope.mergeWith({$mergeInto: item, $mergeFrom: scope.mergeItem, $onSuccess: reload});
+                scope.suggestionList.mergeMode = false;
+            };
+            scope.eventRemoveForever = function(item) {
+                scope.removeForever({$tag: item, $onSuccess: reload });
+
+            };
+
             tagsInput
                 .on('tag-added tag-removed invalid-tag input-blur', function() {
                     suggestionList.reset();
@@ -821,6 +854,7 @@ tagsInput.directive('autoComplete', ["$document", "$timeout", "$sce", "$q", "tag
                 .on('input-change', function(value) {
                     if (shouldLoadSuggestions(value)) {
                         suggestionList.load(value, tagsInput.getTags());
+                        mergeList.load(value, tagsInput.getTags(true));
                     }
                     else {
                         suggestionList.reset();
@@ -844,10 +878,12 @@ tagsInput.directive('autoComplete', ["$document", "$timeout", "$sce", "$q", "tag
 
                         if (key === KEYS.down) {
                             suggestionList.selectNext();
+                            mergeList.selectNext();
                             handled = true;
                         }
                         else if (key === KEYS.up) {
                             suggestionList.selectPrior();
+                            mergeList.selectPrior();
                             handled = true;
                         }
                         else if (key === KEYS.escape) {
@@ -1251,11 +1287,11 @@ tagsInput.run(["$templateCache", function($templateCache) {
   );
 
   $templateCache.put('ngTagsInput/tag-item.html',
-    "<div class=\"chip\"><span ng-bind=\"$getDisplayText()\"></span> <a class=\"remove-button\" ng-click=\"$removeTag()\" ng-bind=\"::$$removeTagSymbol\"></a></div>"
+    "<div class=\"chip\"><span ng-bind=\"$getDisplayText()\"></span><a class=\"remove-button\" ng-click=\"$removeTag()\" ng-bind=\"::$$removeTagSymbol\"></a></div>"
   );
 
   $templateCache.put('ngTagsInput/auto-complete.html',
-    "<div class=\"autocomplete\" ng-if=\"suggestionList.visible\"><ul class=\"suggestion-list\"><li class=\"suggestion-item\" ng-repeat=\"item in suggestionList.items track by track(item)\" ng-class=\"getSuggestionClass(item, $index)\" ng-click=\"addSuggestionByIndex($index)\" ng-mouseenter=\"suggestionList.select($index)\"><ti-autocomplete-match scope=\"templateScope\" data=\"::item\"></ti-autocomplete-match></li></ul></div>"
+    "<div class=\"autocomplete\" ng-if=\"suggestionList.visible\"><ul class=\"suggestion-list\"><li ng-if=\"suggestionList.mergeMode\" class=\"suggestion-item\">Merge {{::mergeItem.name }} With:</li><li ng-if=\"suggestionList.mergeMode && item.name !== mergeItem.name\" class=\"suggestion-item\" ng-repeat=\"item in mergeList.items track by track(item)\" ng-click=\"triggerMergeWith(item)\" ng-class=\"getMergeClass(item, $index)\" ng-mouseenter=\"mergeList.select($index)\"><ti-autocomplete-match scope=\"templateScope\" data=\"::item\"></ti-autocomplete-match><li ng-if=\"!suggestionList.mergeMode\" class=\"suggestion-item\" ng-repeat=\"item in suggestionList.items track by track(item)\" ng-class=\"getSuggestionClass(item, $index)\" ng-mouseenter=\"suggestionList.select($index)\"><span ng-click=\"addSuggestionByIndex($index)\"><ti-autocomplete-match scope=\"templateScope\" data=\"::item\"></span></ti-autocomplete-match><i class=\"material-icons tag-icon \" style=\"float:right\" ng-click=\"eventRemoveForever(item)\">clear</i><i class=\"material-icons tag-icon \" style=\"float:right\" ng-click=\"eventMergeWith(item)\">merge_type</i></li></ul></div>"
   );
 
   $templateCache.put('ngTagsInput/auto-complete-match.html',
