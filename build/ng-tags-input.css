@@ -82,6 +82,9 @@ tags-input .tags .input {
 tags-input .tags .input.invalid-tag {
   color: #ff0000;
 }
+tags-input .tags .duplicate-tag .chip {
+  background-color: #9F81B8;
+}
 tags-input .tags .input::-ms-clear {
   display: none;
 }

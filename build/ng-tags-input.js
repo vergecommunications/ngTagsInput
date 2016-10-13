@@ -431,7 +431,7 @@ tagsInput.directive('tagsInput', ["$timeout", "$document", "$window", "$q", "tag
                     }
                 },
                 tag: {
-                    dblclick: function(tag) {
+                    click: function(tag) {
                         events.trigger('tag-clicked', { $tag: tag });
                     }
                 }
@@ -441,19 +441,9 @@ tagsInput.directive('tagsInput', ["$timeout", "$document", "$window", "$q", "tag
                 .on('tag-added', scope.onTagAdded)
                 .on('invalid-tag', scope.onInvalidTag)
                 .on('tag-removed', scope.onTagRemoved)
-                // very delicate
-                .on('tag-clicked', function() {
-                    tagList.selectPrior();
-                    tagList.removeSelected().then(function(tag) {
-                        if (tag) {
-                            scope.newTag.text(tag[options.displayProperty], true);
-                            scope.newTag.slug(tag['slug']);
-                            scope.newTag.status(tag['status']);
-                        }
-                    });
-                })
-                .on('tag-added', function() {
+                .on('tag-added', function(tag) {
                     scope.newTag.text('');
+                    scope.newTag.slug('');
                 })
                 .on('tag-added tag-removed', function() {
                     scope.tags = tagList.items;
@@ -486,7 +476,6 @@ tagsInput.directive('tagsInput', ["$timeout", "$document", "$window", "$q", "tag
                             status = scope.newTag.status();
 
                         tagList.addText(text, slug, status);
-
                     }
                     element.triggerHandler('blur');
                     setElementValidity();
@@ -1283,7 +1272,7 @@ tagsInput.factory('tiUtil', ["$timeout", "$q", function($timeout, $q) {
 /* HTML templates */
 tagsInput.run(["$templateCache", function($templateCache) {
     $templateCache.put('ngTagsInput/tags-input.html',
-    "<div><i class=\"material-icons tag-icon \">loyalty</i><div class=\"host input-field col s12\" tabindex=\"-1\" ng-click=\"eventHandlers.host.click()\" ti-transclude-append><div class=\"tags\" ng-class=\"{focused: hasFocus}\"><ul class=\"tag-list\"><li class=\"tag-item\" ng-repeat=\"tag in tagList.items track by track(tag)\" ng-class=\"getTagClass(tag, $index)\" ng-dblclick=\"eventHandlers.tag.dblclick(tag)\"><ti-tag-item scope=\"templateScope\" data=\"::tag\"></ti-tag-item></li></ul><input class=\"input\" autocomplete=\"off\" ng-model=\"newTag.text\" ng-model-options=\"{getterSetter: true}\" ng-keydown=\"eventHandlers.input.keydown($event)\" ng-focus=\"eventHandlers.input.focus($event)\" ng-blur=\"eventHandlers.input.blur($event)\" ng-paste=\"eventHandlers.input.paste($event)\" ng-trim=\"false\" ng-class=\"{'invalid-tag': newTag.invalid}\" ng-disabled=\"disabled\" ti-bind-attrs=\"{type: options.type, placeholder: options.placeholder, tabindex: options.tabindex, spellcheck: options.spellcheck}\" ti-autosize></div></div></div>"
+    "<div><i class=\"material-icons tag-icon \">loyalty</i><div class=\"host input-field col s12\" tabindex=\"-1\" ng-click=\"eventHandlers.host.click()\" ti-transclude-append><div class=\"tags\" ng-class=\"{focused: hasFocus}\"><ul class=\"tag-list\"><li class=\"tag-item\" ng-repeat=\"tag in tagList.items track by track(tag)\" ng-class=\"getTagClass(tag, $index)\" ng-click=\"eventHandlers.tag.click(tag)\"><ti-tag-item scope=\"templateScope\" data=\"::tag\"></ti-tag-item></li></ul><input class=\"input\" autocomplete=\"off\" ng-model=\"newTag.text\" ng-model-options=\"{getterSetter: true}\" ng-keydown=\"eventHandlers.input.keydown($event)\" ng-focus=\"eventHandlers.input.focus($event)\" ng-blur=\"eventHandlers.input.blur($event)\" ng-paste=\"eventHandlers.input.paste($event)\" ng-trim=\"false\" ng-class=\"{'invalid-tag': newTag.invalid}\" ng-disabled=\"disabled\" ti-bind-attrs=\"{type: options.type, placeholder: options.placeholder, tabindex: options.tabindex, spellcheck: options.spellcheck}\" ti-autosize></div></div></div>"
   );
 
   $templateCache.put('ngTagsInput/tag-item.html',
